@@ -1,0 +1,22 @@
+crypto_bot/
+├── .env
+├── .gitignore
+├── requirements.txt
+├── config.py
+├── bot.py                # основной файл с диспетчером aiogram
+├── database.py           # работа с SQLite (модели, CRUD)
+├── redis_cache.py        # кэширование через Redis
+├── news_analyzer.py      # интеграция с BiBaBot, анализ новостей
+├── metrics.py            # сбор метрик из CoinDesk, DexScreener и др.
+├── scheduler.py          # планировщик задач (APScheduler)
+├── web.py                # веб-интерфейс на FastAPI
+├── keyboards.py          # клавиатуры для разных чатов
+├── middlewares.py        # middleware для проверки прав доступа
+├── handlers/
+│   ├── __init__.py
+│   ├── private.py        # обработчики для личных чатов
+│   ├── group.py          # для групп
+│   ├── channel.py        # для каналов (только публикация)
+│   └── admin.py          # команды администраторов
+└── templates/            # HTML шаблоны для веб-интерфейса
+    └── index.html
