@@ -1,168 +1,147 @@
-import aiohttp
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
-from database import News, get_db
+from typing import Optional
+from sqlalchemy import select, update
+from database import get_db, News, User
+from bibabot_client import BibabotAPIClient
 from metrics import MetricsCollector
-from redis_cache import redis
-import json
+from redis_cache import get_cached_price, set_cached_price
+import pytz
 
 logger = logging.getLogger(__name__)
 
 class NewsAnalyzer:
-    def __init__(self):
-        self.bibabot_url = "https://cryptocurrency.cv/api"
-        self.session = None
+    def __init__(self, bot):
+        self.bot = bot
+        self.client = BibabotAPIClient()
         self.metrics = MetricsCollector()
+        self._stream_task: Optional[asyncio.Task] = None
 
-    async def get_session(self):
-        if self.session is None:
-            self.session = aiohttp.ClientSession()
-        return self.session
+    async def start_streaming(self):
+        """Запускает получение новостей в реальном времени."""
+        self._stream_task = asyncio.create_task(self._stream_worker())
 
-    async def close(self):
-        if self.session:
-            await self.session.close()
-        await self.metrics.close()
+    async def _stream_worker(self):
+        """Воркер для стрима с автоматическим переподключением."""
+        while True:
+            try:
+                logger.info("Connecting to news stream...")
+                await self.client.stream_news(self.process_news)
+            except Exception as e:
+                logger.error(f"Stream error: {e}. Reconnecting in 10s...")
+                await asyncio.sleep(10)
 
-    # Получение новостей из BiBaBot
-    async def fetch_news(self, ticker="BTC", limit=20) -> List[Dict]:
-        session = await self.get_session()
-        url = f"{self.bibabot_url}/news"
-        params = {"ticker": ticker, "limit": limit}
-        try:
-            async with session.get(url, params=params) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("articles", [])
-        except Exception as e:
-            logger.error(f"Error fetching news: {e}")
-        return []
-
-    # Получение тональности новости через BiBaBot
-    async def get_sentiment(self, news_url: str) -> Optional[Dict]:
-        session = await self.get_session()
-        url = f"{self.bibabot_url}/ai/sentiment"
-        params = {"url": news_url}
-        try:
-            async with session.get(url, params=params) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("sentiment")
-        except Exception as e:
-            logger.error(f"Error getting sentiment: {e}")
-        return None
-
-    # Получение цены BTC на момент запроса
-    async def get_current_btc_price(self) -> Optional[float]:
-        # Сначала проверяем кэш Redis
-        cached = await redis.get("btc_price")
-        if cached:
-            return float(cached)
-        # Иначе через MetricsCollector
-        price_data = await self.metrics.get_btc_price_coindesk()
-        if price_data:
-            price = price_data["price"]
-            await redis.setex("btc_price", 300, price)  # кэш на 5 минут
-            return price
-        return None
-
-    # Сохранение новости в БД
-    async def save_news_to_db(self, article: Dict, sentiment: Dict, price_at_publish: float):
-        async for session in get_db():
-            # Проверяем, есть ли уже такая новость
-            existing = await session.execute(
-                select(News).where(News.url == article["url"])
-            )
-            if existing.scalar_one_or_none():
-                return
-            news_item = News(
-                title=article["title"],
-                url=article["url"],
-                source=article.get("source"),
-                published_at=datetime.fromisoformat(article["published_at"].replace("Z", "+00:00")),
-                sentiment_label=sentiment.get("label"),
-                sentiment_score=sentiment.get("score"),
-                btc_price_at_publish=price_at_publish
-            )
-            session.add(news_item)
-            await session.commit()
-            logger.info(f"Saved news: {article['title']}")
-
-    # Запланированная задача: проверка новых новостей и анализ
-    async def check_news_and_analyze(self):
-        logger.info("Checking for new news...")
-        news_list = await self.fetch_news(limit=30)
-        current_price = await self.get_current_btc_price()
-        if not current_price:
-            logger.error("Cannot get current BTC price")
+    async def process_news(self, news_data: dict):
+        """Обрабатывает полученную новость."""
+        # Проверяем, что новость о Bitcoin
+        tickers = news_data.get("tickers", [])
+        if "BTC" not in tickers:
             return
 
-        for article in news_list:
-            # Получаем тональность (можно с задержкой)
-            sentiment = await self.get_sentiment(article["url"])
-            if not sentiment:
-                continue
-            await self.save_news_to_db(article, sentiment, current_price)
+        url = news_data.get("url")
+        if not url:
+            return
 
-        # Теперь для новостей, у которых нет цены через 1 час, запланируем обновление
-        # Это делается в scheduler'е, вызывающем update_price_after_delay
-        logger.info("News check completed.")
+        # Проверяем, есть ли уже в БД
+        async for session in get_db():
+            existing = await session.execute(select(News).where(News.url == url))
+            if existing.scalar_one_or_none():
+                return
 
-    # Обновление цены через 1 час после публикации
-    async def update_price_after_delay(self, news_id: int, delay_hours: int = 1):
-        await asyncio.sleep(delay_hours * 3600)  # ждем указанное количество часов
+        # Получаем тональность
+        sentiment = await self.client.get_sentiment(url)
+        if not sentiment:
+            return
+
+        # Получаем текущую цену BTC (из кэша или напрямую)
+        price = await get_cached_price()
+        if not price:
+            # fallback
+            price = await self.metrics.get_btc_price_coindesk()
+            if price:
+                await set_cached_price(price)
+
+        # Сохраняем в БД
+        news_item = News(
+            title=news_data.get("title"),
+            url=url,
+            source=news_data.get("source"),
+            published_at=datetime.fromisoformat(news_data["published_at"].replace("Z", "+00:00")),
+            sentiment_label=sentiment.get("label"),
+            sentiment_score=sentiment.get("score"),
+            btc_price_at_publish=price
+        )
+        session.add(news_item)
+        await session.commit()
+        logger.info(f"Saved news: {news_data.get('title')}")
+
+        # Запускаем таймеры для обновления цены через 1, 6, 24 часа
+        asyncio.create_task(self._update_price_later(news_item.id, hours=1))
+        asyncio.create_task(self._update_price_later(news_item.id, hours=6))
+        asyncio.create_task(self._update_price_later(news_item.id, hours=24))
+
+    async def _update_price_later(self, news_id: int, hours: int):
+        """Обновляет цену через заданное количество часов."""
+        await asyncio.sleep(hours * 3600)
         async for session in get_db():
             news = await session.get(News, news_id)
-            if news and news.btc_price_1h_later is None:
-                current_price = await self.get_current_btc_price()
-                if current_price:
-                    if delay_hours == 1:
-                        news.btc_price_1h_later = current_price
-                    elif delay_hours == 24:
-                        news.btc_price_24h_later = current_price
-                    await session.commit()
-                    logger.info(f"Updated price for news {news_id} after {delay_hours}h")
+            if not news:
+                return
 
-    # Анализ новостей на совпадение с реакцией рынка
-    async def analyze_matching_news(self):
-        # Выбираем новости, у которых есть цена через 1 час, но ещё не отмечены matched
-        async for session in get_db():
-            one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-            news_items = await session.execute(
-                select(News).where(
-                    News.btc_price_1h_later.isnot(None),
-                    News.matched == False,
-                    News.published_at <= one_hour_ago
-                )
-            )
-            for news in news_items.scalars():
-                # Определяем тренд рынка по изменению цены за 1 час
-                change_1h = (news.btc_price_1h_later - news.btc_price_at_publish) / news.btc_price_at_publish * 100
-                if change_1h > 0.5:
-                    market_trend = "positive"
-                elif change_1h < -0.5:
-                    market_trend = "negative"
-                else:
-                    market_trend = "neutral"
-
-                news.market_trend = market_trend
-                # Совпадение, если тональность новости и тренд совпадают (и не нейтральны)
-                if market_trend != "neutral" and news.sentiment_label == market_trend:
-                    news.matched = True
-                    # Здесь можно отправить уведомления подписчикам
-                    await self.notify_subscribers(news)
+            current_price = await self.metrics.get_btc_price_coindesk()
+            if current_price:
+                if hours == 1:
+                    news.btc_price_1h_later = current_price
+                    # Вычисляем изменение
+                    if news.btc_price_at_publish:
+                        change = (current_price - news.btc_price_at_publish) / news.btc_price_at_publish * 100
+                        news.price_change_1h = change
+                        # Определяем тренд
+                        if change > 0.5:
+                            news.market_trend = "positive"
+                        elif change < -0.5:
+                            news.market_trend = "negative"
+                        else:
+                            news.market_trend = "neutral"
+                        # Проверяем совпадение
+                        if news.market_trend != "neutral" and news.sentiment_label == news.market_trend:
+                            news.matched = True
+                            # Уведомляем подписчиков
+                            await self.notify_subscribers_about_match(news)
+                elif hours == 6:
+                    news.btc_price_6h_later = current_price
+                    if news.btc_price_at_publish:
+                        change = (current_price - news.btc_price_at_publish) / news.btc_price_at_publish * 100
+                        news.price_change_6h = change
+                elif hours == 24:
+                    news.btc_price_24h_later = current_price
+                    if news.btc_price_at_publish:
+                        change = (current_price - news.btc_price_at_publish) / news.btc_price_at_publish * 100
+                        news.price_change_24h = change
                 await session.commit()
 
-    # Уведомление подписчиков
-    async def notify_subscribers(self, news: News):
-        # Получаем всех подписанных пользователей из БД
+    async def notify_subscribers_about_match(self, news: News):
+        """Отправляет уведомление подписанным пользователям о совпавшей новости."""
         async for session in get_db():
-            users = await session.execute(select(User).where(User.subscribed == True))
+            users = await session.execute(
+                select(User).where(User.subscribed_high_sentiment == True)
+            )
             for user in users.scalars():
-                # Отправляем сообщение через бота (нужен доступ к боту)
-                # Передадим через очередь или прямо вызовем метод bot.send_message
-                # Поскольку мы в отдельной задаче, лучше использовать отдельную очередь.
-                # Пока пропустим.
-                pass
+                try:
+                    text = (
+                        f"📰 <b>Новость совпала с движением рынка!</b>\n\n"
+                        f"{news.title}\n"
+                        f"Тональность: {news.sentiment_label} ({news.sentiment_score:.2f})\n"
+                        f"Изменение цены за 1ч: {news.price_change_1h:.2f}%\n"
+                        f"<a href='{news.url}'>Читать</a>"
+                    )
+                    await self.bot.send_message(user.telegram_id, text)
+                except Exception as e:
+                    logger.error(f"Failed to notify user {user.telegram_id}: {e}")
+
+    async def close(self):
+        await self.client.close()
+        await self.metrics.close()
+        if self._stream_task:
+            self._stream_task.cancel()
