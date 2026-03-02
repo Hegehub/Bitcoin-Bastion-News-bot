@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+from sqlalchemy import func, select
+from database import get_db, News
 import databases
 import sqlalchemy
 from config import DATABASE_URL
@@ -20,19 +22,16 @@ async def shutdown():
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    # Получаем статистику из БД
     query = "SELECT COUNT(*) FROM news"
     total_news = await database.fetch_val(query)
     query = "SELECT COUNT(*) FROM news WHERE matched = TRUE"
     matched_news = await database.fetch_val(query)
-    # Можно добавить графики (например, через Chart.js)
+    query = "SELECT COUNT(*) FROM news WHERE published_in_channel = TRUE"
+    published = await database.fetch_val(query)
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "total_news": total_news,
-        "matched_news": matched_news
+        "matched_news": matched_news,
+        "published": published
     })
-
-@app.get("/api/stats")
-async def api_stats():
-    # Вернуть JSON для графиков
-    pass
