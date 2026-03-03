@@ -3,6 +3,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from database import get_db, News, User
 from bibabot_client import BibabotAPIClient
 from redis_cache import redis
+from sqlalchemy import select
 import logging
 from datetime import datetime, timedelta
 import json
