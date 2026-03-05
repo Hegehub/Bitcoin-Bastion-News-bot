@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, DateTime, Boolean, Float, Integer, Text, select, func
 from datetime import datetime
 from config import DATABASE_URL
@@ -16,10 +16,14 @@ class User(Base):
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String, nullable=True)
     first_name: Mapped[str] = mapped_column(String, nullable=True)
+    language: Mapped[str] = mapped_column(String(2), default='en')  # en или ru
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     subscribed_whales: Mapped[bool] = mapped_column(Boolean, default=False)
     subscribed_liquidations: Mapped[bool] = mapped_column(Boolean, default=False)
     subscribed_triggered: Mapped[bool] = mapped_column(Boolean, default=False)
+    subscribed_historical: Mapped[bool] = mapped_column(Boolean, default=False)
+    subscribed_international: Mapped[bool] = mapped_column(Boolean, default=False)
+    subscribed_ai_alerts: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 class News(Base):
@@ -30,7 +34,7 @@ class News(Base):
     source: Mapped[str] = mapped_column(String(200))
     published_at: Mapped[datetime] = mapped_column(DateTime)
     summary: Mapped[str] = mapped_column(Text, nullable=True)
-    tickers: Mapped[str] = mapped_column(String, nullable=True)
+    tickers: Mapped[str] = mapped_column(String, nullable=True)  # JSON или строка через запятую
     triggered: Mapped[bool] = mapped_column(Boolean, default=False)
     price_change: Mapped[float] = mapped_column(Float, nullable=True)
     sentiment_score: Mapped[float] = mapped_column(Float, nullable=True)
@@ -40,16 +44,22 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-async def add_user(telegram_id: int, username: str = None, first_name: str = None):
+async def add_user(telegram_id: int, username: str = None, first_name: str = None, language: str = 'en'):
     async with async_session() as session:
         user = await session.scalar(select(User).where(User.telegram_id == telegram_id))
         if not user:
-            user = User(telegram_id=telegram_id, username=username, first_name=first_name)
+            user = User(
+                telegram_id=telegram_id, 
+                username=username, 
+                first_name=first_name,
+                language=language
+            )
             session.add(user)
             await session.commit()
         return user
 
 async def add_news_to_db(news_data: dict):
+    """Добавляет новость в БД, если её там нет."""
     async with async_session() as session:
         existing = await session.scalar(select(News).where(News.url == news_data['url']))
         if existing:
