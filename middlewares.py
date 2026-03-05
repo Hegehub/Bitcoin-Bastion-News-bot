@@ -7,7 +7,7 @@ from database import async_session, User, select
 class AdminCheckMiddleware(BaseMiddleware):
     async def __call__(
         self,
-        handler: Callable[[Message | CallbackQuery, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
         event: Message | CallbackQuery,
         data: Dict[str, Any]
     ) -> Any:
