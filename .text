@@ -1,0 +1,28 @@
+ultra-crypto-bot/
+├── .env
+├── requirements.txt
+├── config.py
+├── bot.py
+├── database.py
+├── redis_cache.py
+├── keyboards.py
+├── middlewares.py
+├── scheduler.py
+├── web.py
+├── locales/
+│   ├── en/
+│   │   └── messages.po
+│   └── ru/
+│       └── messages.po
+├── templates/
+│   └── index.html
+├── handlers/
+│   ├── __init__.py
+│   ├── private.py
+│   ├── group.py
+│   └── admin.py
+└── services/
+    ├── __init__.py
+    ├── api_client.py
+    ├── trigger_detector.py
+    └── price_history.py  # Новый файл для получения исторических цен (без Binance)
