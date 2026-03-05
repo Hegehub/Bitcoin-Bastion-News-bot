@@ -13,13 +13,11 @@ async def close_redis():
         await redis_client.close()
 
 async def set_cache(key: str, value, ttl: int = 300):
-    """Сохраняет значение в кэш (может быть строкой или dict)."""
     if isinstance(value, (dict, list)):
         value = json.dumps(value)
     await redis_client.setex(key, ttl, value)
 
 async def get_cache(key: str):
-    """Получает значение из кэша (пытается распарсить JSON)."""
     val = await redis_client.get(key)
     if val:
         try:
