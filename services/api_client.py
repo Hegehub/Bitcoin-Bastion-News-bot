@@ -1,5 +1,4 @@
 import aiohttp
-import asyncio
 from typing import Optional, Dict, Any, List, AsyncGenerator
 from config import API_BASE_URL
 import logging
@@ -32,10 +31,6 @@ class CryptoNewsAPIClient:
 
     async def get_latest_news(self, limit: int = 20, language: str = 'en') -> Optional[List[Dict]]:
         data = await self._make_request("/api/news", params={"limit": limit, "language": language})
-        return data.get("articles") if data else None
-
-    async def get_news_by_ticker(self, ticker: str = "BTC", limit: int = 50) -> Optional[List[Dict]]:
-        data = await self._make_request("/api/archive", params={"ticker": ticker, "limit": limit})
         return data.get("articles") if data else None
 
     async def get_ai_sentiment(self, asset: str = "BTC", text: Optional[str] = None) -> Optional[Dict]:
@@ -91,5 +86,4 @@ class CryptoNewsAPIClient:
         if self.session and not self.session.closed:
             await self.session.close()
 
-# Глобальный экземпляр клиента (удобно для использования в хендлерах)
 api_client = CryptoNewsAPIClient()
