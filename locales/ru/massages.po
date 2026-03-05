@@ -1,0 +1,90 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Ultra Crypto Bot\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+
+msgid "start_message"
+msgstr "👋 Привет! Я бот крипто-аналитики.\n\nЯ получаю новости в реальном времени и определяю, какие из них вызвали движение цены. Такие новости публикуются в канале.\n\n📊 Доступные команды:\n/btc — цена BTC, страх/жадность, доминация\n/whales — последние китовые транзакции\n/liquidations — последние ликвидации\n/funding — ставки фандинга\n/latest — последние 5 новостей\n/historical BTC — архив новостей по Bitcoin\n/international ko — новости из Кореи\n/ask Что с ETF? — вопрос AI\n/factcheck [текст] — проверка фактов\n/summarize [url] — краткое содержание\n/entities [текст] — извлечение сущностей\n/gainers — топ роста\n/losers — топ падения\n/coin ethereum — информация о монете\n/heatmap — тепловая карта\n/options — данные по опционам\n/orderbook BTC/USD — стакан ордеров\n/feargreed — индекс страха и жадности\n/dominance — доминация BTC и ETH\n/subscribe — управление подписками\n/language — смена языка"
+
+msgid "btc_price"
+msgstr "💰 **Bitcoin (BTC)**\nЦена: ${price:,.2f}\n\n😨 Индекс страха и жадности: **{fear}**\n({fear_class})\n📊 Доминация BTC: {btc_dom:.2f}%\n📊 Доминация ETH: {eth_dom:.2f}%"
+
+msgid "whales_title"
+msgstr "🐋 **Последние китовые транзакции:**\n\n"
+
+msgid "whale_entry"
+msgstr "• {amount:.2f} {coin} (${value:,.0f})\n  From: {from_addr} → To: {to_addr}\n  [Смотреть]({url})\n\n"
+
+msgid "liquidations_title"
+msgstr "💥 **Последние ликвидации:**\n\n"
+
+msgid "liquidation_entry"
+msgstr "{emoji} {side} {amount:,.0f}$ на {pair}\n"
+
+msgid "funding_title"
+msgstr "💰 **Funding Rates (8h):**\n\n"
+
+msgid "funding_entry"
+msgstr "{emoji} {pair}: {rate}%\n"
+
+msgid "latest_news_title"
+msgstr "📰 **Последние новости:**\n\n"
+
+msgid "news_entry"
+msgstr "• [{title}]({url}) — {source}\n"
+
+msgid "historical_news_title"
+msgstr "📚 **Архив новостей по {ticker}:**\n\n"
+
+msgid "international_news_title"
+msgstr "🌍 **Международные новости ({lang}):**\n\n"
+
+msgid "ask_response"
+msgstr "🤖 **Ответ AI:**\n{response}"
+
+msgid "factcheck_result"
+msgstr "🔍 **Результат проверки фактов:**\n{result}"
+
+msgid "summary_result"
+msgstr "📝 **Краткое содержание:**\n{summary}"
+
+msgid "entities_result"
+msgstr "🔬 **Извлеченные сущности:**\n{entities}"
+
+msgid "movers_title"
+msgstr "📈 **Топ {type}:**\n\n"
+
+msgid "mover_entry"
+msgstr "{emoji} {symbol}: {change:+.2f}% (${price})\n"
+
+msgid "coin_info"
+msgstr "🪙 **{name} ({symbol})**\n💰 Цена: ${price:,.2f}\n📊 Рыночная капитализация: ${market_cap:,.0f}\n📈 Объем (24ч): ${volume:,.0f}\n🔄 Циркулирующее предложение: {circulating_supply:,.0f}\n🏆 Рыночный ранг: #{rank}\n\n{description}"
+
+msgid "heatmap_title"
+msgstr "🔥 **Тепловая карта рынка**\n(зеленый = рост, красный = падение)"
+
+msgid "options_title"
+msgstr "📊 **Данные по опционам**\n\n{data}"
+
+msgid "orderbook_title"
+msgstr "📚 **Стакан ордеров {pair}**\n\nПокупка (Bids):\n{bids}\n\nПродажа (Asks):\n{asks}"
+
+msgid "feargreed"
+msgstr "😨 Индекс страха и жадности: **{value}** — {classification}"
+
+msgid "dominance"
+msgstr "📊 Доминация BTC: {btc:.2f}%\n📊 Доминация ETH: {eth:.2f}%"
+
+msgid "subscribe_menu"
+msgstr "🔔 **Управление подписками:**\n\nВыберите типы уведомлений:"
+
+msgid "language_selected"
+msgstr "✅ Язык изменен на русский"
+
+msgid "error_occurred"
+msgstr "❌ Произошла ошибка. Пожалуйста, попробуйте позже."
+
+msgid "no_data"
+msgstr "❌ Не удалось получить данные."
