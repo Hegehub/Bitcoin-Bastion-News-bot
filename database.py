@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, DateTime, Boolean, Float, Integer, Text, select, func
 from datetime import datetime
 from config import DATABASE_URL
@@ -30,7 +30,7 @@ class News(Base):
     source: Mapped[str] = mapped_column(String(200))
     published_at: Mapped[datetime] = mapped_column(DateTime)
     summary: Mapped[str] = mapped_column(Text, nullable=True)
-    tickers: Mapped[str] = mapped_column(String, nullable=True)  # JSON или строка через запятую
+    tickers: Mapped[str] = mapped_column(String, nullable=True)
     triggered: Mapped[bool] = mapped_column(Boolean, default=False)
     price_change: Mapped[float] = mapped_column(Float, nullable=True)
     sentiment_score: Mapped[float] = mapped_column(Float, nullable=True)
@@ -50,7 +50,6 @@ async def add_user(telegram_id: int, username: str = None, first_name: str = Non
         return user
 
 async def add_news_to_db(news_data: dict):
-    """Добавляет новость в БД, если её там нет."""
     async with async_session() as session:
         existing = await session.scalar(select(News).where(News.url == news_data['url']))
         if existing:
