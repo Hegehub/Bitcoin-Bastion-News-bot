@@ -1,0 +1,90 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Ultra Crypto Bot\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+
+msgid "start_message"
+msgstr "👋 Hello! I'm a crypto analytics bot.\n\nI receive news in real-time and determine which ones caused price movements. Such news is published in the channel.\n\n📊 Available commands:\n/btc — BTC price, fear/greed, dominance\n/whales — latest whale transactions\n/liquidations — latest liquidations\n/funding — funding rates\n/latest — last 5 news\n/historical BTC — Bitcoin news archive\n/international ko — news from Korea\n/ask What about ETF? — ask AI\n/factcheck [text] — fact checking\n/summarize [url] — summary\n/entities [text] — entity extraction\n/gainers — top gainers\n/losers — top losers\n/coin ethereum — coin info\n/heatmap — market heatmap\n/options — options data\n/orderbook BTC/USD — order book\n/feargreed — fear & greed index\n/dominance — BTC and ETH dominance\n/subscribe — manage subscriptions\n/language — change language"
+
+msgid "btc_price"
+msgstr "💰 **Bitcoin (BTC)**\nPrice: ${price:,.2f}\n\n😨 Fear & Greed Index: **{fear}**\n({fear_class})\n📊 BTC Dominance: {btc_dom:.2f}%\n📊 ETH Dominance: {eth_dom:.2f}%"
+
+msgid "whales_title"
+msgstr "🐋 **Latest Whale Transactions:**\n\n"
+
+msgid "whale_entry"
+msgstr "• {amount:.2f} {coin} (${value:,.0f})\n  From: {from_addr} → To: {to_addr}\n  [View]({url})\n\n"
+
+msgid "liquidations_title"
+msgstr "💥 **Latest Liquidations:**\n\n"
+
+msgid "liquidation_entry"
+msgstr "{emoji} {side} {amount:,.0f}$ on {pair}\n"
+
+msgid "funding_title"
+msgstr "💰 **Funding Rates (8h):**\n\n"
+
+msgid "funding_entry"
+msgstr "{emoji} {pair}: {rate}%\n"
+
+msgid "latest_news_title"
+msgstr "📰 **Latest News:**\n\n"
+
+msgid "news_entry"
+msgstr "• [{title}]({url}) — {source}\n"
+
+msgid "historical_news_title"
+msgstr "📚 **Historical News Archive for {ticker}:**\n\n"
+
+msgid "international_news_title"
+msgstr "🌍 **International News ({lang}):**\n\n"
+
+msgid "ask_response"
+msgstr "🤖 **AI Response:**\n{response}"
+
+msgid "factcheck_result"
+msgstr "🔍 **Fact Check Result:**\n{result}"
+
+msgid "summary_result"
+msgstr "📝 **Summary:**\n{summary}"
+
+msgid "entities_result"
+msgstr "🔬 **Extracted Entities:**\n{entities}"
+
+msgid "movers_title"
+msgstr "📈 **Top {type}:**\n\n"
+
+msgid "mover_entry"
+msgstr "{emoji} {symbol}: {change:+.2f}% (${price})\n"
+
+msgid "coin_info"
+msgstr "🪙 **{name} ({symbol})**\n💰 Price: ${price:,.2f}\n📊 Market Cap: ${market_cap:,.0f}\n📈 Volume (24h): ${volume:,.0f}\n🔄 Circulating Supply: {circulating_supply:,.0f}\n🏆 Market Rank: #{rank}\n\n{description}"
+
+msgid "heatmap_title"
+msgstr "🔥 **Market Heatmap**\n(green = gain, red = loss)"
+
+msgid "options_title"
+msgstr "📊 **Options Data**\n\n{data}"
+
+msgid "orderbook_title"
+msgstr "📚 **Order Book {pair}**\n\nBids:\n{bids}\n\nAsks:\n{asks}"
+
+msgid "feargreed"
+msgstr "😨 Fear & Greed Index: **{value}** — {classification}"
+
+msgid "dominance"
+msgstr "📊 BTC Dominance: {btc:.2f}%\n📊 ETH Dominance: {eth:.2f}%"
+
+msgid "subscribe_menu"
+msgstr "🔔 **Manage Subscriptions:**\n\nChoose notification types:"
+
+msgid "language_selected"
+msgstr "✅ Language changed to English"
+
+msgid "error_occurred"
+msgstr "❌ An error occurred. Please try again later."
+
+msgid "no_data"
+msgstr "❌ Failed to retrieve data."
