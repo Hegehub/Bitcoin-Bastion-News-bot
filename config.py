@@ -16,10 +16,12 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 TRIGGER_PRICE_CHANGE_PERCENT = float(os.getenv("TRIGGER_PRICE_CHANGE_PERCENT", 2.0))
 TRIGGER_TIMEFRAME_MINUTES = int(os.getenv("TRIGGER_TIMEFRAME_MINUTES", 30))
 
-API_BASE_URL = "https://cryptocurrency.cv"  # free-crypto-news
+API_BASE_URL = "https://cryptocurrency.cv"
 
 DEFAULT_LANGUAGE = os.getenv("DEFAULT_LANGUAGE", "en")
 SUPPORTED_LANGUAGES = ["en", "ru"]
 
 CRYPTORANK_API_KEY = os.getenv("CRYPTORANK_API_KEY")
 CRYPTORANK_BASE_URL = "https://api.cryptorank.io/v2"
+
+WEBAPP_URL = os.getenv("WEBAPP_URL", "http://localhost:8000/webapp")
