@@ -1,5 +1,5 @@
 ultra-crypto-bot/
-├── .env.example
+├── .env
 ├── requirements.txt
 ├── config.py
 ├── bot.py
@@ -8,20 +8,13 @@ ultra-crypto-bot/
 ├── keyboards.py
 ├── middlewares.py
 ├── scheduler.py
-├── web.py                 # Заглушка (WebApp отключен)
+├── web.py                 # заглушка
 ├── utils.py
-├── locales/
-│   ├── en/
-│   │   └── messages.ftl
-│   └── ru/
-│       └── messages.ftl
-├── handlers/
-│   ├── __init__.py
-│   ├── private.py
-│   ├── group.py
-│   └── admin.py
+├── locales/               # без изменений
+├── handlers/              # без изменений, кроме private.py (/btc)
 └── services/
     ├── __init__.py
-    ├── api_client.py
-    ├── price_history.py
-    └── trigger_detector.py
+    ├── api_client.py       # free-crypto-news (без изменений)
+    ├── cryptorank_client.py # НОВЫЙ
+    ├── price_history.py     # ПЕРЕПИСАН под CryptoRank
+    └── trigger_detector.py  # использует price_history
