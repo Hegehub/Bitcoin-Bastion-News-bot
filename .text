@@ -1,28 +1,11 @@
-ultra-crypto-bot/
-├── .env
-├── requirements.txt
-├── config.py
-├── bot.py
-├── database.py
-├── redis_cache.py
-├── keyboards.py
-├── middlewares.py
-├── scheduler.py
-├── web.py                 # заглушка
-├── utils.py
-├── locales/
-│   ├── en/
-│   │   └── messages.ftl
-│   └── ru/
-│       └── messages.ftl
-├── handlers/
-│   ├── __init__.py
-│   ├── private.py
-│   ├── group.py
-│   └── admin.py
-└── services/
-    ├── __init__.py
-    ├── api_client.py          # free-crypto-news (без изменений)
-    ├── cryptorank_client.py   # новый клиент CryptoRank
-    ├── price_history.py       # переписан под CryptoRank
-    └── trigger_detector.py    # использует price_history
+aiogram==3.17.0
+aiohttp==3.10.10
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+redis==5.2.0
+apscheduler==3.10.4
+fastapi==0.115.6
+uvicorn==0.34.0
+jinja2==3.1.4
+python-dotenv==1.0.1
+fluent.runtime==0.4.0
