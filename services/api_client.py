@@ -43,36 +43,6 @@ class CryptoNewsAPIClient:
             params["text"] = text
         return await self._make_request("/api/ai/sentiment", params=params)
 
-    # Другие методы (get_whale_transactions, get_liquidations и т.д.) – без изменений, см. предыдущие версии.
-    # Для краткости здесь не дублирую все, но в реальном проекте они должны быть.
-    async def get_whale_transactions(self, limit: int = 5) -> Optional[List[Dict]]:
-        data = await self._make_request("/api/whales", params={"limit": limit})
-        return data.get("transactions") if data else None
-
-    async def get_liquidations(self, limit: int = 5) -> Optional[List[Dict]]:
-        data = await self._make_request("/api/liquidations", params={"limit": limit})
-        return data.get("liquidations") if data else None
-
-    async def get_funding_rates(self) -> Optional[List[Dict]]:
-        data = await self._make_request("/api/funding")
-        return data.get("rates") if data else None
-
-    async def get_market_movers(self, type: str = 'gainers', limit: int = 10) -> Optional[List[Dict]]:
-        data = await self._make_request(f"/api/movers/{type}", params={"limit": limit})
-        return data.get("movers") if data else None
-
-    async def get_coin_details(self, coin_id: str) -> Optional[Dict]:
-        return await self._make_request(f"/api/coin/{coin_id}")
-
-    async def get_market_heatmap(self) -> Optional[Dict]:
-        return await self._make_request("/api/heatmap")
-
-    async def get_options_data(self) -> Optional[Dict]:
-        return await self._make_request("/api/options")
-
-    async def get_orderbook(self, pair: str = 'BTC/USD') -> Optional[Dict]:
-        return await self._make_request("/api/orderbook", params={"pair": pair})
-
     async def get_historical_archive(self, date: str = None, ticker: str = None, query: str = None, limit: int = 100) -> Optional[List[Dict]]:
         params = {"limit": limit}
         if date:
@@ -102,6 +72,34 @@ class CryptoNewsAPIClient:
 
     async def extract_entities(self, text: str) -> Optional[Dict]:
         return await self._make_request("/api/entities", params={"text": text})
+
+    async def get_whale_transactions(self, limit: int = 5) -> Optional[List[Dict]]:
+        data = await self._make_request("/api/whales", params={"limit": limit})
+        return data.get("transactions") if data else None
+
+    async def get_liquidations(self, limit: int = 5) -> Optional[List[Dict]]:
+        data = await self._make_request("/api/liquidations", params={"limit": limit})
+        return data.get("liquidations") if data else None
+
+    async def get_funding_rates(self) -> Optional[List[Dict]]:
+        data = await self._make_request("/api/funding")
+        return data.get("rates") if data else None
+
+    async def get_market_movers(self, type: str = 'gainers', limit: int = 10) -> Optional[List[Dict]]:
+        data = await self._make_request(f"/api/movers/{type}", params={"limit": limit})
+        return data.get("movers") if data else None
+
+    async def get_coin_details(self, coin_id: str) -> Optional[Dict]:
+        return await self._make_request(f"/api/coin/{coin_id}")
+
+    async def get_market_heatmap(self) -> Optional[Dict]:
+        return await self._make_request("/api/heatmap")
+
+    async def get_options_data(self) -> Optional[Dict]:
+        return await self._make_request("/api/options")
+
+    async def get_orderbook(self, pair: str = 'BTC/USD') -> Optional[Dict]:
+        return await self._make_request("/api/orderbook", params={"pair": pair})
 
     async def stream_news(self) -> AsyncGenerator[str, None]:
         url = f"{self.base_url}/api/stream"
