@@ -4,7 +4,6 @@ from sqlalchemy import String, DateTime, Boolean, Float, Integer, Text, select, 
 from datetime import datetime
 from config import DATABASE_URL
 
-# Создаем движок для PostgreSQL
 engine = create_async_engine(DATABASE_URL, echo=False)
 async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
@@ -35,14 +34,13 @@ class News(Base):
     source: Mapped[str] = mapped_column(String(200))
     published_at: Mapped[datetime] = mapped_column(DateTime)
     summary: Mapped[str] = mapped_column(Text, nullable=True)
-    tickers: Mapped[str] = mapped_column(String, nullable=True)  # строка через запятую
+    tickers: Mapped[str] = mapped_column(String, nullable=True)
     triggered: Mapped[bool] = mapped_column(Boolean, default=False)
     price_change: Mapped[float] = mapped_column(Float, nullable=True)
     sentiment_score: Mapped[float] = mapped_column(Float, nullable=True)
     analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 async def init_db():
-    """Создает таблицы, если их нет."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -61,7 +59,6 @@ async def add_user(telegram_id: int, username: str = None, first_name: str = Non
         return user
 
 async def add_news_to_db(news_data: dict):
-    """Добавляет новость в БД, если её там нет."""
     async with async_session() as session:
         existing = await session.scalar(select(News).where(News.url == news_data['url']))
         if existing:
