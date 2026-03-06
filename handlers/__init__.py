@@ -1,4 +1,3 @@
-from .api_client import api_client
-from .cryptorank_client import cryptorank
-from .price_history import price_history
-from .trigger_detector import trigger_detector
+from .private import router as private
+from .group import router as group
+from .admin import router as admin
