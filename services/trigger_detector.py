@@ -13,16 +13,6 @@ class TriggerDetector:
     def __init__(self):
         self.trigger_change = TRIGGER_PRICE_CHANGE_PERCENT
         self.timeframe = TRIGGER_TIMEFRAME_MINUTES
-        self.coin_mapping = {
-            'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana', 'XRP': 'ripple',
-            'ADA': 'cardano', 'DOGE': 'dogecoin', 'DOT': 'polkadot',
-            'LINK': 'chainlink', 'MATIC': 'polygon', 'AVAX': 'avalanche-2',
-            'UNI': 'uniswap', 'ATOM': 'cosmos', 'LTC': 'litecoin',
-            'BCH': 'bitcoin-cash', 'ALGO': 'algorand', 'XLM': 'stellar',
-            'VET': 'vechain', 'FIL': 'filecoin', 'TRX': 'tron',
-            'FTM': 'fantom', 'NEAR': 'near', 'APT': 'aptos',
-            'ARB': 'arbitrum', 'OP': 'optimism', 'SUI': 'sui',
-        }
 
     async def check_if_triggered(self, news_article: Dict) -> Optional[Dict]:
         tickers = news_article.get('tickers', [])
@@ -31,20 +21,23 @@ class TriggerDetector:
         if not tickers:
             tickers = ['BTC']
         primary_ticker = tickers[0]
-        coin_id = self.coin_mapping.get(primary_ticker, 'bitcoin')
+
         try:
             news_time = datetime.fromisoformat(news_article['published_at'].replace('Z', '+00:00'))
         except:
             news_time = datetime.utcnow() - timedelta(hours=1)
         check_time = news_time + timedelta(minutes=self.timeframe)
+
         sentiment_data = await api_client.get_ai_sentiment(asset=primary_ticker, text=news_article['title'])
         if not sentiment_data:
             logger.warning(f"Failed to get sentiment for: {news_article['title'][:50]}")
             return None
-        price_change = await price_history.get_price_change_percent(coin_id, news_time, check_time)
+
+        price_change = await price_history.get_price_change_percent(primary_ticker, news_time, check_time)
         if price_change is None:
-            logger.warning(f"Failed to get price change for {coin_id}")
+            logger.warning(f"Failed to get price change for {primary_ticker}")
             return None
+
         if abs(price_change) >= self.trigger_change:
             sentiment_label = sentiment_data.get('label', 'neutral').lower()
             direction_match = (
@@ -55,20 +48,19 @@ class TriggerDetector:
                 news_article['triggered'] = True
                 news_article['price_change'] = price_change
                 news_article['sentiment'] = sentiment_data
-                news_article['coin_id'] = coin_id
-                news_article['ticker'] = primary_ticker
                 logger.info(f"✅ Triggered news: {news_article['title'][:50]}... change: {price_change:+.2f}%")
                 return news_article
         return None
 
     def _extract_tickers(self, text: str) -> List[str]:
-        tickers = []
+        common_tickers = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOGE', 'DOT', 'LINK', 'MATIC', 'AVAX', 'UNI', 'ATOM', 'LTC', 'BCH', 'ALGO', 'XLM', 'VET', 'FIL', 'TRX', 'FTM', 'NEAR', 'APT', 'ARB', 'OP', 'SUI']
         words = text.upper().split()
+        found = []
         for word in words:
-            clean_word = word.strip('.,!?:;()[]{}"\'')
-            if clean_word in self.coin_mapping:
-                tickers.append(clean_word)
-        return tickers
+            clean = word.strip('.,!?:;()[]{}"\'')
+            if clean in common_tickers:
+                found.append(clean)
+        return found
 
     async def analyze_historical_news(self, days: int = 7) -> Dict:
         stats = {'total_analyzed': 0, 'triggered': 0, 'by_coin': {}, 'accuracy': 0}
