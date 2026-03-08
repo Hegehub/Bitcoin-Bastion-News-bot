@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
-dp.include_router(private.router)
-dp.include_router(group.router)
-dp.include_router(admin.router)
+dp.include_router(private)
+dp.include_router(group)
+dp.include_router(admin)
 
 dp.message.middleware(AdminCheckMiddleware())
 
@@ -30,7 +30,7 @@ async def on_startup():
     await redis_cache.init_redis()
     await api_client._get_session()
     await price_history._get_session()
-    setup_schedulers()
+    setup_schedulers(bot)
     scheduler.start()
     logger.info("Scheduler started.")
 

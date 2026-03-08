@@ -2,6 +2,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 import logging
+from typing import Dict, Optional
+from aiogram import Bot
 from services.api_client import api_client
 from services.trigger_detector import trigger_detector
 from database import async_session, News, add_news_to_db, select, User
@@ -9,11 +11,11 @@ from handlers.group import publish_all_news_to_group
 from config import CHANNEL_ID, GROUP_CHAT_ID, TRIGGER_TIMEFRAME_MINUTES
 #from bot import bot
 from utils import escape_html
-import asyncio
 
 logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
+telegram_bot: Optional[Bot] = None
 
 async def scheduled_news_check():
     logger.info("Running scheduled news check...")
@@ -37,6 +39,9 @@ async def scheduled_news_check():
             await notify_subscribers(triggered_news)
 
 async def notify_subscribers(news_data: Dict):
+    if telegram_bot is None:
+        logger.warning("Telegram bot is not configured; skipping subscriber notifications.")
+        return
     async with async_session() as session:
         users = await session.execute(select(User).where(User.subscribed_triggered == True))
         users = users.scalars().all()
@@ -51,7 +56,7 @@ async def notify_subscribers(news_data: Dict):
                 f"<a href='{escape_html(news_data['url'])}'>Read more</a>\n\n"
                 f"<b>#BitcoinBastion</b>"
             )
-            await bot.send_message(user.telegram_id, text, parse_mode='HTML', disable_web_page_preview=True)
+            await telegram_bot.send_message(user.telegram_id, text, parse_mode='HTML', disable_web_page_preview=True)
         except Exception as e:
             logger.error(f"Failed to notify user {user.telegram_id}: {e}")
 
@@ -62,6 +67,9 @@ async def check_whales():
             await notify_whale_subscribers(whale)
 
 async def notify_whale_subscribers(whale_data: Dict):
+    if telegram_bot is None:
+        logger.warning("Telegram bot is not configured; skipping whale notifications.")
+        return
     async with async_session() as session:
         users = await session.execute(select(User).where(User.subscribed_whales == True))
         users = users.scalars().all()
@@ -74,12 +82,15 @@ async def notify_whale_subscribers(whale_data: Dict):
                 f"<a href='{escape_html(whale_data['tx_url'])}'>View transaction</a>\n\n"
                 f"<b>#BitcoinBastion</b>"
             )
-            await bot.send_message(user.telegram_id, text, parse_mode='HTML', disable_web_page_preview=True)
+            await telegram_bot.send_message(user.telegram_id, text, parse_mode='HTML', disable_web_page_preview=True)
         except Exception as e:
             logger.error(f"Failed to notify user {user.telegram_id}: {e}")
 
 async def publish_triggered_news_to_channel(news_data):
     if not CHANNEL_ID:
+        return
+    if telegram_bot is None:
+        logger.warning("Telegram bot is not configured; skipping channel publish.")
         return
     title = escape_html(news_data['title'])
     summary = escape_html(news_data.get('summary', 'No summary'))
@@ -100,11 +111,14 @@ async def publish_triggered_news_to_channel(news_data):
         f"<tg-spoiler>⚡ Analysis details: 1h change: +?.?% , 6h change: +?.?%</tg-spoiler>"
     )
     try:
-        await bot.send_message(CHANNEL_ID, text, parse_mode='HTML', disable_web_page_preview=True)
+        await telegram_bot.send_message(CHANNEL_ID, text, parse_mode='HTML', disable_web_page_preview=True)
     except Exception as e:
         logger.error(f"Failed to send to channel: {e}")
 
-def setup_schedulers():
+def setup_schedulers(bot: Bot):
+    global telegram_bot
+    telegram_bot = bot
+
     scheduler.add_job(
         scheduled_news_check,
         trigger=IntervalTrigger(minutes=15),
@@ -121,7 +135,7 @@ def setup_schedulers():
         scheduler.add_job(
             publish_all_news_to_group,
             trigger=IntervalTrigger(minutes=60),
-            args=[bot],
+            args=[telegram_bot],
             id="group_news_feed",
             replace_existing=True
         )
