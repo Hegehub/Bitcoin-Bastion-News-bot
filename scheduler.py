@@ -43,7 +43,7 @@ async def notify_subscribers(news_data: Dict):
         logger.warning("Telegram bot is not configured; skipping subscriber notifications.")
         return
     async with async_session() as session:
-        users = await session.execute(select(User).where(User.subscribed_triggered == True))
+        users = await session.execute(select(User).where(User.subscribed_triggered))
         users = users.scalars().all()
     for user in users:
         try:
@@ -71,7 +71,7 @@ async def notify_whale_subscribers(whale_data: Dict):
         logger.warning("Telegram bot is not configured; skipping whale notifications.")
         return
     async with async_session() as session:
-        users = await session.execute(select(User).where(User.subscribed_whales == True))
+        users = await session.execute(select(User).where(User.subscribed_whales))
         users = users.scalars().all()
     for user in users:
         try:

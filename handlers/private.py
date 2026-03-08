@@ -5,9 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.enums import ParseMode
 from services.api_client import api_client
-from services.price_history import price_history
 from services.cryptorank_client import cryptorank
-from services.trigger_detector import trigger_detector
 from redis_cache import get_cache, set_cache
 from database import add_user, async_session, User, select
 from keyboards import (
@@ -18,8 +16,6 @@ from keyboards import (
 from utils import escape_html
 import logging
 from fluent.runtime import FluentLocalization, FluentResourceLoader
-import os
-import json
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -48,7 +44,7 @@ def get_text(msg_id: str, lang: str = 'en', **kwargs) -> str:
     try:
         l10n = FluentLocalization([lang], ["messages.ftl"], loader)
         return l10n.format_value(msg_id, escaped_kwargs)
-    except:
+    except Exception:
         l10n_en = FluentLocalization(['en'], ["messages.ftl"], loader)
         return l10n_en.format_value(msg_id, escaped_kwargs)
 
@@ -659,8 +655,6 @@ async def menu_research(callback: CallbackQuery):
 
 @router.callback_query(F.data == "menu_settings")
 async def menu_settings(callback: CallbackQuery):
-    user_id = callback.from_user.id
-    lang = await get_user_language(user_id)
     await cmd_subscribe(callback.message)
     await callback.answer()
 
