@@ -1,14 +1,23 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, DateTime, Boolean, Float, Integer, Text, select, func
 from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, func, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
 from config import DATABASE_URL
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is not set. Add DATABASE_URL (or SUPABASE_DB_URL) to your .env file."
+    )
+
+engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
 async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
 
 class Base(DeclarativeBase):
     pass
+
 
 class User(Base):
     __tablename__ = "users"
@@ -16,7 +25,7 @@ class User(Base):
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String, nullable=True)
     first_name: Mapped[str] = mapped_column(String, nullable=True)
-    language: Mapped[str] = mapped_column(String(2), default='en')
+    language: Mapped[str] = mapped_column(String(2), default="en")
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     subscribed_whales: Mapped[bool] = mapped_column(Boolean, default=False)
     subscribed_liquidations: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -25,6 +34,7 @@ class User(Base):
     subscribed_international: Mapped[bool] = mapped_column(Boolean, default=False)
     subscribed_ai_alerts: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 
 class News(Base):
     __tablename__ = "news"
@@ -40,11 +50,18 @@ class News(Base):
     sentiment_score: Mapped[float] = mapped_column(Float, nullable=True)
     analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-async def add_user(telegram_id: int, username: str = None, first_name: str = None, language: str = 'en'):
+
+async def add_user(
+    telegram_id: int,
+    username: str = None,
+    first_name: str = None,
+    language: str = "en",
+):
     async with async_session() as session:
         user = await session.scalar(select(User).where(User.telegram_id == telegram_id))
         if not user:
@@ -52,24 +69,25 @@ async def add_user(telegram_id: int, username: str = None, first_name: str = Non
                 telegram_id=telegram_id,
                 username=username,
                 first_name=first_name,
-                language=language
+                language=language,
             )
             session.add(user)
             await session.commit()
         return user
 
+
 async def add_news_to_db(news_data: dict):
     async with async_session() as session:
-        existing = await session.scalar(select(News).where(News.url == news_data['url']))
+        existing = await session.scalar(select(News).where(News.url == news_data["url"]))
         if existing:
             return existing
         news = News(
-            title=news_data['title'],
-            url=news_data['url'],
-            source=news_data.get('source', 'unknown'),
-            published_at=datetime.fromisoformat(news_data['published_at'].replace('Z', '+00:00')),
-            summary=news_data.get('summary'),
-            tickers=','.join(news_data.get('tickers', [])) if news_data.get('tickers') else None,
+            title=news_data["title"],
+            url=news_data["url"],
+            source=news_data.get("source", "unknown"),
+            published_at=datetime.fromisoformat(news_data["published_at"].replace("Z", "+00:00")),
+            summary=news_data.get("summary"),
+            tickers=",".join(news_data.get("tickers", [])) if news_data.get("tickers") else None,
         )
         session.add(news)
         await session.commit()
