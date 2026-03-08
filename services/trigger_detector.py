@@ -24,7 +24,7 @@ class TriggerDetector:
 
         try:
             news_time = datetime.fromisoformat(news_article['published_at'].replace('Z', '+00:00'))
-        except:
+        except (KeyError, TypeError, ValueError):
             news_time = datetime.utcnow() - timedelta(hours=1)
         check_time = news_time + timedelta(minutes=self.timeframe)
 
