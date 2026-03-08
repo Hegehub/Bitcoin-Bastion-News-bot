@@ -61,7 +61,21 @@ Telegram-бот для мониторинга и рассылки актуаль
     REDIS_HOST=localhost
     REDIS_PORT=6379
     NEWS_API_KEY=ваш_ключ_для_новостного_api
-    DATABASE_URL=sqlite+aiosqlite:///data/bot.db  # пример для SQLite
+    # Приоритет: DATABASE_URL -> SUPABASE_POOLER_URL -> SUPABASE_DB_URL -> отдельные DB_* переменные
+    DATABASE_URL=
+    SUPABASE_POOLER_URL=postgresql://postgres.<project-ref>:<password>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require
+    SUPABASE_DB_URL=postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require
+    SUPABASE_POOL_MODE=session  # session | transaction
+
+    # Альтернатива: можно передать подключение отдельными переменными
+    DB_USER=postgres.<project-ref>
+    DB_PASSWORD=<password>
+    DB_HOST=aws-1-eu-central-1.pooler.supabase.com
+    DB_PORT=5432
+    DB_NAME=postgres
+
+    DATABASE_CONNECT_RETRIES=3
+    DATABASE_CONNECT_RETRY_DELAY=2
     # ... другие переменные из .env файла
     ```
 

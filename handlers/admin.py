@@ -4,10 +4,11 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.enums import ParseMode
+from sqlalchemy import func
 from middlewares import AdminCheckMiddleware
 import config
 from config import ADMIN_IDS, TRIGGER_PRICE_CHANGE_PERCENT, TRIGGER_TIMEFRAME_MINUTES
-from database import async_session, User, News, select, func
+from database import async_session, User, News, select
 from keyboards import admin_keyboard
 from services.trigger_detector import trigger_detector
 from services.price_history import price_history
