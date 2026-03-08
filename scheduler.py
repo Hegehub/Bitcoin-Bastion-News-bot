@@ -149,3 +149,4 @@ def setup_schedulers(bot: Bot):
 async def cleanup_old_cache():
     # Очистка старых ключей Redis (опционально)
     pass
+
