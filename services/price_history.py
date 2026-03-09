@@ -6,6 +6,9 @@ from services.cryptorank_client import cryptorank
 logger = logging.getLogger(__name__)
 
 class PriceHistoryService:
+    async def _get_session(self):
+        return await cryptorank._get_session()
+
     async def get_price_change_percent(self, coin_symbol: str, from_time: datetime, to_time: datetime) -> Optional[float]:
         currency_id = await cryptorank.get_currency_id(coin_symbol)
         if not currency_id:
