@@ -1,7 +1,6 @@
-from aiogram import Router, F
+from aiogram import Router
 from aiogram.types import Message
 from aiogram.filters import Command
-from aiogram.enums import ParseMode
 from services.api_client import api_client
 from config import GROUP_CHAT_ID
 from keyboards import reaction_keyboard
@@ -55,7 +54,6 @@ async def cmd_latest_group(message: Message):
     for news in news_list:
         title = escape_html(news['title'])
         url = escape_html(news['url'])
-        source = escape_html(news['source'])
         tickers = ','.join(news.get('tickers', ['BTC']))
         text = f"📰 <b>{title}</b>\n🔗 <a href='{url}'>Read</a>  <code>#{tickers}</code>  <b>#BitcoinBastion</b>"
         await message.answer(text, parse_mode='HTML', disable_web_page_preview=True)

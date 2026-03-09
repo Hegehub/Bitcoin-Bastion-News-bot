@@ -6,6 +6,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _build_database_url_from_parts() -> str | None:
+    """Build DATABASE_URL from separate env vars if URL is not provided."""
+    user = os.getenv("user") or os.getenv("DB_USER")
+    password = os.getenv("password") or os.getenv("DB_PASSWORD")
+    host = os.getenv("host") or os.getenv("DB_HOST")
+    port = os.getenv("port") or os.getenv("DB_PORT")
+    dbname = os.getenv("dbname") or os.getenv("DB_NAME")
+
+    if not all([user, password, host, port, dbname]):
+        return None
+
+    return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{dbname}?ssl=require"
+
+
 def _normalize_database_url(raw_url: str | None) -> str | None:
     """Normalize DATABASE_URL so it works with SQLAlchemy asyncpg + Supabase."""
     if not raw_url:
@@ -42,7 +56,9 @@ if GROUP_CHAT_ID and GROUP_CHAT_ID.lstrip("-").isdigit():
 
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(","))) if os.getenv("ADMIN_IDS") else []
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-DATABASE_URL = _normalize_database_url(os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL"))
+DATABASE_URL = _normalize_database_url(
+    os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL") or _build_database_url_from_parts()
+)
 
 TRIGGER_PRICE_CHANGE_PERCENT = float(os.getenv("TRIGGER_PRICE_CHANGE_PERCENT", 2.0))
 TRIGGER_TIMEFRAME_MINUTES = int(os.getenv("TRIGGER_TIMEFRAME_MINUTES", 30))
