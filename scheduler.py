@@ -31,9 +31,12 @@ async def scheduled_news_check():
         triggered_news = await trigger_detector.check_if_triggered(news)
         if triggered_news and db_news:
             async with async_session() as session:
-                db_news.triggered = True
-                db_news.price_change = triggered_news['price_change']
-                db_news.sentiment_score = triggered_news['sentiment'].get('score')
+                db_news_in_session = await session.get(News, db_news.id)
+                if db_news_in_session is None:
+                    continue
+                db_news_in_session.triggered = True
+                db_news_in_session.price_change = triggered_news['price_change']
+                db_news_in_session.sentiment_score = triggered_news['sentiment'].get('score')
                 await session.commit()
             await publish_triggered_news_to_channel(triggered_news)
             await notify_subscribers(triggered_news)
@@ -43,7 +46,7 @@ async def notify_subscribers(news_data: Dict):
         logger.warning("Telegram bot is not configured; skipping subscriber notifications.")
         return
     async with async_session() as session:
-        users = await session.execute(select(User).where(User.subscribed_triggered == True))
+        users = await session.execute(select(User).where(User.subscribed_triggered))
         users = users.scalars().all()
     for user in users:
         try:
@@ -71,7 +74,7 @@ async def notify_whale_subscribers(whale_data: Dict):
         logger.warning("Telegram bot is not configured; skipping whale notifications.")
         return
     async with async_session() as session:
-        users = await session.execute(select(User).where(User.subscribed_whales == True))
+        users = await session.execute(select(User).where(User.subscribed_whales))
         users = users.scalars().all()
     for user in users:
         try:
@@ -149,4 +152,3 @@ def setup_schedulers(bot: Bot):
 async def cleanup_old_cache():
     # Очистка старых ключей Redis (опционально)
     pass
-

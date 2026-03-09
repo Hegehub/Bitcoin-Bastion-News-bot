@@ -7,11 +7,9 @@ from aiogram.enums import ParseMode
 from sqlalchemy import func
 from middlewares import AdminCheckMiddleware
 import config
-from config import ADMIN_IDS, TRIGGER_PRICE_CHANGE_PERCENT, TRIGGER_TIMEFRAME_MINUTES
 from database import async_session, User, News, select
 from keyboards import admin_keyboard
 from services.trigger_detector import trigger_detector
-from services.price_history import price_history
 from utils import escape_html
 import logging
 import asyncio
@@ -58,7 +56,7 @@ async def admin_stats(callback: CallbackQuery):
     async with async_session() as session:
         users_count = await session.scalar(select(func.count(User.id)))
         news_count = await session.scalar(select(func.count(News.id)))
-        triggered_count = await session.scalar(select(func.count(News.id)).where(News.triggered == True))
+        triggered_count = await session.scalar(select(func.count(News.id)).where(News.triggered))
     trigger_stats = await trigger_detector.analyze_historical_news(days=7)
     text = (
         f"📊 <b>Bot Statistics</b>\n\n"
@@ -123,9 +121,6 @@ async def admin_backtest(callback: CallbackQuery):
         else "Запуск бэктеста за последние 30 дней... (это может занять некоторое время)"
     )
     stats = await trigger_detector.analyze_historical_news(days=30)
-    # Получить историю цен BTC (опционально)
-    btc_price_info = "N/A"
-    # Можно через cryptorank.get_sparkline, но для простоты опустим
     text = (
         f"📊 <b>Backtest Results (30 days)</b>\n\n"
         f"Total news analyzed: {stats['total_analyzed']}\n"

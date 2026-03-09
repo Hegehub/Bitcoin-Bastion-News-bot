@@ -5,9 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.enums import ParseMode
 from services.api_client import api_client
-from services.price_history import price_history
 from services.cryptorank_client import cryptorank
-from services.trigger_detector import trigger_detector
 from redis_cache import get_cache, set_cache
 from database import add_user, async_session, User, select
 from keyboards import (
@@ -18,8 +16,6 @@ from keyboards import (
 from utils import escape_html
 import logging
 from fluent.runtime import FluentLocalization, FluentResourceLoader
-import os
-import json
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -48,7 +44,7 @@ def get_text(msg_id: str, lang: str = 'en', **kwargs) -> str:
     try:
         l10n = FluentLocalization([lang], ["messages.ftl"], loader)
         return l10n.format_value(msg_id, escaped_kwargs)
-    except:
+    except Exception:
         l10n_en = FluentLocalization(['en'], ["messages.ftl"], loader)
         return l10n_en.format_value(msg_id, escaped_kwargs)
 
@@ -659,8 +655,6 @@ async def menu_research(callback: CallbackQuery):
 
 @router.callback_query(F.data == "menu_settings")
 async def menu_settings(callback: CallbackQuery):
-    user_id = callback.from_user.id
-    lang = await get_user_language(user_id)
     await cmd_subscribe(callback.message)
     await callback.answer()
 
@@ -747,6 +741,54 @@ async def research_historical(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AIStates.waiting_for_historical_ticker)
     await callback.message.edit_text(get_text("historical_prompt", lang))
     await callback.answer()
+
+
+
+@router.message(AIStates.waiting_for_historical_ticker)
+async def process_historical_ticker(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+    lang = await get_user_language(user_id)
+    ticker = (message.text or '').upper().strip()
+    if not ticker:
+        await message.answer(get_text("no_data", lang))
+        await state.clear()
+        return
+
+    news = await api_client.get_historical_archive(ticker=ticker, limit=10)
+    if not news:
+        await message.answer(get_text("no_data", lang))
+    else:
+        text = get_text("historical_news_title", lang, ticker=ticker)
+        for item in news:
+            text += f"• {item['published_at'][:10]}: <a href='{escape_html(item['url'])}'>{escape_html(item['title'])}</a>\n"
+        text += "\n<b>#BitcoinBastion</b>"
+        await message.answer(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
+    await state.clear()
+
+
+@router.callback_query(F.data == "research_correlation")
+async def research_correlation(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    text = (
+        "📊 Correlation module is under development."
+        if lang == 'en'
+        else "📊 Модуль корреляции находится в разработке."
+    )
+    await callback.answer(text, show_alert=True)
+
+
+@router.callback_query(F.data == "research_backtest")
+async def research_backtest(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    text = (
+        "⚙️ Backtest module is available in /admin for admins."
+        if lang == 'en'
+        else "⚙️ Модуль бэктеста доступен в /admin для администраторов."
+    )
+    await callback.answer(text, show_alert=True)
 
 @router.callback_query(F.data.startswith("intl_"))
 async def process_intl_language(callback: CallbackQuery):
