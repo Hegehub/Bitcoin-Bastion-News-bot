@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -7,6 +7,7 @@ from aiogram.enums import ParseMode
 from services.api_client import api_client
 from services.price_history import price_history
 from services.trigger_detector import trigger_detector
+from services.btc_service import top_btc_articles, is_btc_related
 from redis_cache import get_cache, set_cache
 from database import add_user, async_session, User, select
 from keyboards import (
@@ -179,7 +180,8 @@ async def cmd_latest(message: Message):
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
     
-    news = await api_client.get_latest_news(limit=5)
+    news = await api_client.get_bitcoin_news(limit=10)
+    news = top_btc_articles(news or [], limit=5)
     if not news:
         await message.answer(get_text("no_data", lang))
         return
@@ -199,10 +201,13 @@ async def cmd_historical(message: Message, command: CommandObject):
     lang = await get_user_language(user_id)
     
     if not command.args:
-        await message.answer("Usage: /historical BTC\nПример: /historical ETH")
+        await message.answer("Usage: /historical BTC")
         return
     
     ticker = command.args.upper()
+    if ticker != "BTC":
+        await message.answer("BTC-only mode: use /historical BTC")
+        return
     news = await api_client.get_historical_archive(ticker=ticker, limit=10)
     
     if not news:
@@ -422,11 +427,13 @@ async def cmd_coin(message: Message, command: CommandObject, state: FSMContext):
     
     if not command.args:
         await state.set_state(AIStates.waiting_for_coin)
-        await message.answer("Enter coin name (e.g., bitcoin, ethereum):" if lang == 'en' 
-                            else "Введите название монеты (например: bitcoin, ethereum):")
+        await message.answer("BTC-only mode. Type: bitcoin" if lang == 'en' else "Режим только BTC. Введите: bitcoin")
         return
     
     coin_id = command.args.lower().strip()
+    if coin_id != "bitcoin":
+        await message.answer("BTC-only mode: /coin bitcoin")
+        return
     coin_data = await api_client.get_coin_details(coin_id)
     
     if not coin_data:
@@ -451,6 +458,10 @@ async def process_coin(message: Message, state: FSMContext):
     lang = await get_user_language(user_id)
     
     coin_id = message.text.lower().strip()
+    if coin_id != "bitcoin":
+        await message.answer("BTC-only mode: bitcoin")
+        await state.clear()
+        return
     coin_data = await api_client.get_coin_details(coin_id)
     
     if not coin_data:
@@ -557,7 +568,7 @@ async def cmd_feargreed(message: Message):
         await message.answer(cached)
         return
     
-    fg = await api_client._make_request("/api/market/fear-greed")
+    fg = await api_client._make_request("/api/fear-greed")
     if not fg:
         await message.answer(get_text("no_data", lang))
         return
@@ -855,3 +866,120 @@ async def process_intl_language(callback: CallbackQuery):
     
     await callback.message.edit_text(text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
     await callback.answer()
+
+
+@router.message(Command("breaking"))
+async def cmd_breaking(message: Message):
+    news = await api_client.get_breaking_news(limit=8)
+    news = top_btc_articles(news or [], limit=5)
+    if not news:
+        await message.answer("No BTC breaking news right now.")
+        return
+
+    text = "🚨 <b>BTC Breaking</b>\n\n"
+    for item in news:
+        text += f"• <a href='{item.get('url')}'>{item.get('title')}</a>\n"
+    await message.answer(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
+
+@router.message(Command("digest"))
+async def cmd_digest(message: Message):
+    digest = await api_client.summarize_daily_digest()
+    if not digest:
+        await message.answer("Digest is unavailable now.")
+        return
+    await message.answer(f"🧾 <b>BTC Daily Digest</b>\n\n{digest}", parse_mode=ParseMode.HTML)
+
+
+@router.message(Command("sentiment"))
+async def cmd_sentiment(message: Message):
+    data = await api_client.get_ai_sentiment(asset="BTC")
+    if not data:
+        await message.answer("Sentiment endpoint unavailable.")
+        return
+
+    label = data.get("label", "unknown")
+    score = data.get("score", 0)
+    await message.answer(f"🧠 BTC sentiment: <b>{label}</b> ({score:.2f})", parse_mode=ParseMode.HTML)
+
+
+@router.message(Command("narratives"))
+async def cmd_narratives(message: Message):
+    items = await api_client.get_narratives(limit=5)
+    if not items:
+        await message.answer("Narratives unavailable.")
+        return
+
+    lines = []
+    for item in items[:5]:
+        if isinstance(item, dict):
+            lines.append(f"• {item.get('name') or item.get('title') or str(item)}")
+        else:
+            lines.append(f"• {item}")
+    await message.answer("📚 <b>BTC Narratives</b>\n\n" + "\n".join(lines), parse_mode=ParseMode.HTML)
+
+
+@router.message(Command("anomalies"))
+async def cmd_anomalies(message: Message):
+    anomalies = await api_client.get_anomalies()
+    if not anomalies:
+        await message.answer("No BTC anomalies now.")
+        return
+
+    lines = []
+    for a in anomalies[:5]:
+        if isinstance(a, dict):
+            title = a.get("title") or a.get("type") or "Anomaly"
+            sev = a.get("severity", "n/a")
+            lines.append(f"• {title} (severity: {sev})")
+        else:
+            lines.append(f"• {a}")
+    await message.answer("⚠️ <b>BTC anomalies</b>\n\n" + "\n".join(lines), parse_mode=ParseMode.HTML)
+
+
+@router.message(Command("credibility"))
+async def cmd_credibility(message: Message):
+    data = await api_client.get_credibility()
+    if not data:
+        await message.answer("Credibility data unavailable.")
+        return
+
+    score = data.get("score") or data.get("credibility_score") or "n/a"
+    top_sources = data.get("top_sources") or []
+    src_text = ", ".join(top_sources[:5]) if isinstance(top_sources, list) else str(top_sources)
+    await message.answer(
+        f"🛡 <b>BTC source credibility</b>\nScore: <b>{score}</b>\nTop: {src_text or 'n/a'}",
+        parse_mode=ParseMode.HTML
+    )
+
+
+@router.inline_query()
+async def inline_btc_news(inline_query: InlineQuery):
+    query = (inline_query.query or "").lower().strip()
+    if query and "btc" not in query and "bitcoin" not in query:
+        await inline_query.answer([], cache_time=5, is_personal=True)
+        return
+
+    articles = await api_client.get_bitcoin_news(limit=8)
+    articles = top_btc_articles(articles or [], limit=5)
+    results = []
+
+    for idx, item in enumerate(articles):
+        title = item.get("title", "BTC news")
+        url = item.get("url", "https://cryptocurrency.cv")
+        source = item.get("source", "source")
+        content = InputTextMessageContent(
+            message_text=f"📰 <b>{title}</b>\n\n{source}\n<a href='{url}'>Read full article</a>",
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=False
+        )
+        results.append(
+            InlineQueryResultArticle(
+                id=f"btc_{idx}_{hash(url)}",
+                title=title[:64],
+                description=source,
+                input_message_content=content,
+            )
+        )
+
+    await inline_query.answer(results, cache_time=30, is_personal=True)
