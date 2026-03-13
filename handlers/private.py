@@ -62,3 +62,36 @@ async def cmd_backtest(message: Message):
         "\n".join([f"• {cat}: {count}" for cat, count in categories.items()])
     )
     await message.answer(text, parse_mode=ParseMode.HTML)
+
+@router.message(Command("backtest"))
+async def cmd_backtest(message: Message):
+    user_id = message.from_user.id
+    lang = await get_user_language(user_id)
+
+    # Проверка прав (только админы)
+    is_admin = user_id in ADMIN_IDS
+    if not is_admin:
+        async with async_session() as session:
+            user = await session.scalar(select(User).where(User.telegram_id == user_id))
+            is_admin = user.is_admin if user else False
+    if not is_admin:
+        await message.answer("Access denied.")
+        return
+
+    await message.answer("Running backtest for last 30 days... This may take a moment.")
+
+    # Запускаем бэктестинг
+    results = await backtest_engine.run_backtest(days=30, use_ml=True)
+
+    text = (
+        f"📊 Backtest Results (30 days)\n\n"
+        f"Total news: {results['total']}\n"
+        f"With price data: {results['with_price']}\n"
+        f"Accuracy (sentiment): {results['accuracy']:.1f}%\n"
+        f"ML Accuracy: {results.get('ml_accuracy', 0):.1f}%\n\n"
+        f"Top categories:\n" +
+        "\n".join([f"• {k}: {v}" for k, v in list(results['by_category'].items())[:5]]) +
+        f"\n\nTop sources:\n" +
+        "\n".join([f"• {k}: {v}" for k, v in list(results['by_source'].items())[:5]])
+    )
+    await message.answer(text, parse_mode=ParseMode.HTML)
