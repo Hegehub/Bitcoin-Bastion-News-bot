@@ -5,7 +5,9 @@
 [![CI](https://github.com/Hegehub/Bitcoin-Bastion-News-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/Hegehub/Bitcoin-Bastion-News-bot/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Bitcoin Bastion News Bot** — это многофункциональный Telegram-бот для анализа криптовалютных новостей и их влияния на цену Bitcoin. Бот собирает новости из различных источников (агрегатор free-crypto-news, Twitter), анализирует их тональность с помощью нейросетей (FinBERT), вычисляет корреляцию с движением цены (используя данные CryptoRank с интервалом 5 минут) и отправляет пользователям наиболее значимые события. Проект построен на современных технологиях: асинхронный Python (aiogram), FastAPI для MCP-сервера, PostgreSQL, Redis, Docker.
+**Bitcoin Bastion News Bot** — это многофункциональный Telegram-бот для анализа криптовалютных новостей и их влияния на цену Bitcoin.
+Бот собирает новости из различных источников (агрегатор free-crypto-news, Twitter), анализирует их тональность с помощью нейросетей (FinBERT), вычисляет корреляцию с движением цены (используя данные CryptoRank с интервалом 5 минут) и отправляет пользователям наиболее значимые события.
+Проект построен на современных технологиях: асинхронный Python (aiogram), FastAPI для MCP-сервера, PostgreSQL, Redis, Docker.
 
 ---
 
