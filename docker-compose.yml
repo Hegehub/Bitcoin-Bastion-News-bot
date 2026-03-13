@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: cryptobot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    restart: always
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:yourpassword@postgres:5432/cryptobot
+      - REDIS_URL=redis://redis:6379/0
+      - CRYPTORANK_API_KEY=${CRYPTORANK_API_KEY}
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    restart: always
+    depends_on:
+      - redis
+      - postgres
+      - mcp-server
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:yourpassword@postgres:5432/cryptobot
+      - REDIS_URL=redis://redis:6379/0
+      - MCP_SERVER_URL=http://mcp-server:8001
+    env_file:
+      - .env
+
+volumes:
+  redis_data:
+  postgres_data:
