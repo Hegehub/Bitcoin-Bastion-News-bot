@@ -13,6 +13,18 @@ from sqlalchemy import select
 logger = logging.getLogger(__name__)
 
 class TriggerDetector:
+    async def get_thresholds(self, days: int = 30):
+    async with async_session() as session:
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        result = await session.execute(
+            select(News.price_change).where(
+                News.published_at >= cutoff,
+                News.price_change.isnot(None)
+            )
+        )
+        changes = [float(x) for x in result.scalars().all() if x is not None]
+        return self.categorizer.get_thresholds(changes)
+        
     def __init__(self):
         self.trigger_change = TRIGGER_PRICE_CHANGE_PERCENT
         self.timeframe = TRIGGER_TIMEFRAME_MINUTES
