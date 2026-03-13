@@ -32,12 +32,10 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:yourpassword@postgres:5432/cryptobot
       - REDIS_URL=redis://redis:6379/0
-      - CRYPTORANK_API_KEY=${CRYPTORANK_API_KEY}
-      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
-    ports:
-      - "8001:8001"
     env_file:
       - .env
+    ports:
+      - "8001:8001"
 
   bot:
     build:
@@ -54,6 +52,8 @@ services:
       - MCP_SERVER_URL=http://mcp-server:8001
     env_file:
       - .env
+    volumes:
+      - ./models:/app/models  # для сохранения ML-моделей
 
 volumes:
   redis_data:
